@@ -9,7 +9,8 @@
 #include <mutex>
 #include <vector>
 
-#include <benchmark/benchmark.h>
+#include "absl/synchronization/mutex.h"
+#include "benchmark/benchmark.h"
 
 constexpr auto kInitValue = 100;
 
@@ -23,6 +24,21 @@ static void BM_InitVectorWithStdMutex(benchmark::State& state) {
 
         for (int i = 0; i < items.size(); ++i) {
             const std::lock_guard<std::mutex> lock(mutex);
+            items[i] = kInitValue;
+        }
+    }
+}
+
+static void BM_InitVectorWithAbslMutex(benchmark::State& state) {
+    absl::Mutex mutex;
+
+    for (auto _ : state) {
+        state.PauseTiming();
+        std::vector<std::int64_t> items(state.range(0), 0);
+        state.ResumeTiming();
+
+        for (int i = 0; i < items.size(); ++i) {
+            const absl::MutexLock lock(&mutex);
             items[i] = kInitValue;
         }
     }
@@ -46,6 +62,8 @@ static void BM_InitVectorWithCompareAndSet(benchmark::State& state) {
 }
 
 BENCHMARK(BM_InitVectorWithStdMutex)
+    ->Range(2 << 10, 2 << 20);
+BENCHMARK(BM_InitVectorWithAbslMutex)
     ->Range(2 << 10, 2 << 20);
 BENCHMARK(BM_InitVectorWithCompareAndSet)
     ->Range(2 << 10, 2 << 20);
