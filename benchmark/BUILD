@@ -1,6 +1,6 @@
 cc_binary(
-    name = "sample",
-    srcs = ["sample.cc"],
+    name = "mutual_exclusion",
+    srcs = ["mutual_exclusion.cc"],
     deps = [
         "@com_google_benchmark//:benchmark",
     ],
