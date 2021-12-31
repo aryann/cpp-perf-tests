@@ -17,7 +17,7 @@ constexpr auto kInitValue = 100;
 
 static void BM_InitVectorWithStdMutex(benchmark::State &state) {
   int size = state.range(0);
-  state.SetLabel(absl::StrFormat("%d KiB", size));
+  state.SetLabel(absl::StrFormat("%d KiB", size / (1 << 10)));
 
   std::mutex mutex;
 
@@ -37,7 +37,7 @@ static void BM_InitVectorWithStdMutex(benchmark::State &state) {
 
 static void BM_InitVectorWithAbslMutex(benchmark::State &state) {
   int size = state.range(0);
-  state.SetLabel(absl::StrFormat("%d KiB", size));
+  state.SetLabel(absl::StrFormat("%d KiB", size / (1 << 10)));
   absl::Mutex mutex;
 
   for (auto _ : state) {
@@ -56,7 +56,7 @@ static void BM_InitVectorWithAbslMutex(benchmark::State &state) {
 
 static void BM_InitVectorWithCompareAndSet(benchmark::State &state) {
   int size = state.range(0);
-  state.SetLabel(absl::StrFormat("%d KiB", size));
+  state.SetLabel(absl::StrFormat("%d KiB", size / (1 << 10)));
 
   for (auto _ : state) {
     state.PauseTiming();
@@ -77,13 +77,13 @@ static void BM_InitVectorWithCompareAndSet(benchmark::State &state) {
 }
 
 BENCHMARK(BM_InitVectorWithStdMutex)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 20);
+    ->RangeMultiplier(8)
+    ->Range(1 << 10, 1 << 26);
 BENCHMARK(BM_InitVectorWithAbslMutex)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 20);
+    ->RangeMultiplier(8)
+    ->Range(1 << 10, 1 << 26);
 BENCHMARK(BM_InitVectorWithCompareAndSet)
-    ->RangeMultiplier(2)
-    ->Range(1 << 10, 1 << 20);
+    ->RangeMultiplier(8)
+    ->Range(1 << 10, 1 << 26);
 
 BENCHMARK_MAIN();
