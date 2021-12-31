@@ -9,63 +9,81 @@
 #include <mutex>
 #include <vector>
 
+#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "benchmark/benchmark.h"
 
 constexpr auto kInitValue = 100;
 
-static void BM_InitVectorWithStdMutex(benchmark::State& state) {
-    std::mutex mutex;
+static void BM_InitVectorWithStdMutex(benchmark::State &state) {
+  int size = state.range(0);
+  state.SetLabel(absl::StrFormat("%d KiB", size));
 
-    for (auto _ : state) {
-        state.PauseTiming();
-        std::vector<std::int64_t> items(state.range(0), 0);
-        state.ResumeTiming();
+  std::mutex mutex;
 
-        for (int i = 0; i < items.size(); ++i) {
-            const std::lock_guard<std::mutex> lock(mutex);
-            items[i] = kInitValue;
-        }
+  for (auto _ : state) {
+    state.PauseTiming();
+    std::vector<std::int64_t> items(size / sizeof(std::int64_t), 0);
+    state.ResumeTiming();
+
+    for (int i = 0; i < items.size(); ++i) {
+      const std::lock_guard<std::mutex> lock(mutex);
+      items[i] = kInitValue;
     }
+  }
+
+  state.SetBytesProcessed(size * state.iterations());
 }
 
-static void BM_InitVectorWithAbslMutex(benchmark::State& state) {
-    absl::Mutex mutex;
+static void BM_InitVectorWithAbslMutex(benchmark::State &state) {
+  int size = state.range(0);
+  state.SetLabel(absl::StrFormat("%d KiB", size));
+  absl::Mutex mutex;
 
-    for (auto _ : state) {
-        state.PauseTiming();
-        std::vector<std::int64_t> items(state.range(0), 0);
-        state.ResumeTiming();
+  for (auto _ : state) {
+    state.PauseTiming();
+    std::vector<std::int64_t> items(size / sizeof(std::int64_t), 0);
+    state.ResumeTiming();
 
-        for (int i = 0; i < items.size(); ++i) {
-            const absl::MutexLock lock(&mutex);
-            items[i] = kInitValue;
-        }
+    for (int i = 0; i < items.size(); ++i) {
+      const absl::MutexLock lock(&mutex);
+      items[i] = kInitValue;
     }
+  }
+
+  state.SetBytesProcessed(size * state.iterations());
 }
 
-static void BM_InitVectorWithCompareAndSet(benchmark::State& state) {
-    for (auto _ : state) {
-        state.PauseTiming();
-        std::vector<std::atomic<std::int64_t>> items(state.range(0));
-        state.ResumeTiming();
+static void BM_InitVectorWithCompareAndSet(benchmark::State &state) {
+  int size = state.range(0);
+  state.SetLabel(absl::StrFormat("%d KiB", size));
 
-        for (int i = 0; i < items.size(); ++i) {
-            std::int64_t expected = 0;
-            std::int64_t desired = kInitValue;
-            if (!items[i].compare_exchange_strong(expected, desired)) {
-                // This should never happen!
-                std::abort();
-            }
-        }
+  for (auto _ : state) {
+    state.PauseTiming();
+    std::vector<std::atomic<std::int64_t>> items(size / sizeof(std::int64_t));
+    state.ResumeTiming();
+
+    for (int i = 0; i < items.size(); ++i) {
+      std::int64_t expected = 0;
+      std::int64_t desired = kInitValue;
+      if (!items[i].compare_exchange_strong(expected, desired)) {
+        // This should never happen!
+        std::abort();
+      }
     }
+  }
+
+  state.SetBytesProcessed(size * state.iterations());
 }
 
 BENCHMARK(BM_InitVectorWithStdMutex)
-    ->Range(2 << 10, 2 << 20);
+    ->RangeMultiplier(2)
+    ->Range(1 << 10, 1 << 20);
 BENCHMARK(BM_InitVectorWithAbslMutex)
-    ->Range(2 << 10, 2 << 20);
+    ->RangeMultiplier(2)
+    ->Range(1 << 10, 1 << 20);
 BENCHMARK(BM_InitVectorWithCompareAndSet)
-    ->Range(2 << 10, 2 << 20);
+    ->RangeMultiplier(2)
+    ->Range(1 << 10, 1 << 20);
 
 BENCHMARK_MAIN();
