@@ -23,7 +23,7 @@ static void BM_InitVectorWithStdMutex(benchmark::State &state) {
 
   for (auto _ : state) {
     state.PauseTiming();
-    std::vector<std::int64_t> items(size / sizeof(std::int64_t), 0);
+    std::vector<int> items(size / sizeof(int), 0);
     state.ResumeTiming();
 
     for (int i = 0; i < items.size(); ++i) {
@@ -42,7 +42,7 @@ static void BM_InitVectorWithAbslMutex(benchmark::State &state) {
 
   for (auto _ : state) {
     state.PauseTiming();
-    std::vector<std::int64_t> items(size / sizeof(std::int64_t), 0);
+    std::vector<int> items(size / sizeof(int), 0);
     state.ResumeTiming();
 
     for (int i = 0; i < items.size(); ++i) {
@@ -60,12 +60,12 @@ static void BM_InitVectorWithCompareAndSet(benchmark::State &state) {
 
   for (auto _ : state) {
     state.PauseTiming();
-    std::vector<std::atomic<std::int64_t>> items(size / sizeof(std::int64_t));
+    std::vector<std::atomic<int>> items(size / sizeof(int));
     state.ResumeTiming();
 
     for (int i = 0; i < items.size(); ++i) {
-      std::int64_t expected = 0;
-      std::int64_t desired = kInitValue;
+      int expected = 0;
+      int desired = kInitValue;
       if (!items[i].compare_exchange_strong(expected, desired)) {
         // This should never happen!
         std::abort();
